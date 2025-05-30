@@ -76,11 +76,11 @@
       }
 
       const input = latestInput;
-      const autoFixed = new Set(denominations.filter(denom => input[denom] >= baseTargets[denom]));
+      const autoFixed = new Set(denominations.filter(d => input[d] >= baseTargets[d]));
       let excluded = autoFixed;
 
       document.getElementById("adjustmentResult").innerText = "調整中です...";
-      await new Promise(resolve => setTimeout(resolve, 50));
+      await new Promise(resolve => setTimeout(resolve, 30));
 
       let best = findOptimalAdjustment(input, baseTargets, excluded);
       if (!best && autoFixed.size > 0) {
@@ -117,59 +117,48 @@
       document.getElementById("adjustmentResult").innerText = resultText;
     }
 
-    function findOptimalAdjustment(input, baseTargets, excludeSet, maxTry = 10) {
-      for (let t = 0; t <= maxTry; t++) {
-        const patterns = generateAdjustmentPatterns(baseTargets, t, excludeSet);
-        for (let newTargets of patterns) {
+    function findOptimalAdjustment(input, baseTargets, excludeSet) {
+      let bestResult = null;
+
+      function dfs(current, idx, addedCount) {
+        if (bestResult) return; // 最初の有効解で即終了
+        if (idx === denominations.length) {
           const shortage = {};
           let shortageTotal = 0;
-
           for (let denom of denominations) {
-            const need = newTargets[denom] || 0;
+            const need = current[denom];
             const lack = Math.max(0, need - input[denom]);
             if (lack > 0) {
               shortage[denom] = lack;
               shortageTotal += denom * lack;
             }
           }
-
           const usableCoins = denominations.map(denom => {
             const adjustedInput = input[denom] + (shortage[denom] || 0);
-            const usable = adjustedInput - (newTargets[denom] || 0);
+            const usable = adjustedInput - current[denom];
             return [denom, usable];
           }).filter(([_, count]) => count > 0);
 
           const combo = knapsack(usableCoins, shortageTotal);
           if (combo) {
-            return { newTargets, shortage, shortageTotal, combo };
+            bestResult = { newTargets: { ...current }, shortage, shortageTotal, combo };
           }
-        }
-      }
-      return null;
-    }
-
-    function generateAdjustmentPatterns(baseTargets, extraCount, excludeSet) {
-      const patterns = [];
-      const denoms = denominations;
-      const current = { ...baseTargets };
-
-      function backtrack(index, remaining) {
-        if (remaining === 0) {
-          patterns.push({ ...current });
           return;
         }
-        if (index === denoms.length) return;
 
-        const denom = denoms[index];
-        const maxAdd = (excludeSet.has(denom) ? 0 : ((denom === 5000) ? 1 : remaining));
-        for (let add = 0; add <= maxAdd; add++) {
-          current[denom] = baseTargets[denom] + add;
-          backtrack(index + 1, remaining - add);
+        const denom = denominations[idx];
+        const base = baseTargets[denom];
+        const limit = excludeSet.has(denom) ? 0 : 20;
+
+        for (let add = 0; add <= limit; add++) {
+          current[denom] = base + add;
+          dfs(current, idx + 1, addedCount + add);
+          if (bestResult) return;
         }
       }
 
-      backtrack(0, extraCount);
-      return patterns;
+      dfs({}, 0, 0);
+      return bestResult;
     }
 
     function knapsack(usableCoins, targetAmount) {
