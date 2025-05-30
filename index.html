@@ -76,23 +76,34 @@
       }
 
       const input = latestInput;
+      const autoFixed = new Set(denominations.filter(denom => input[denom] >= baseTargets[denom]));
 
-      // 不足金種のみ抽出
-      const shortageDenoms = denominations.filter(denom => input[denom] < baseTargets[denom]);
+      let excluded = autoFixed;
 
       document.getElementById("adjustmentResult").innerText = "調整中です...";
-      await new Promise(resolve => setTimeout(resolve, 30));
+      await new Promise(resolve => setTimeout(resolve, 50));
 
-      const best = await findOptimalAdjustment(input, baseTargets, shortageDenoms);
+      // 通常パターン
+      let best = findOptimalAdjustment(input, baseTargets, excluded, 20, null);
+      if (!best && autoFixed.size > 0) {
+        // 自動固定を外して再挑戦（制限なし）
+        excluded = new Set();
+        best = findOptimalAdjustment(input, baseTargets, excluded, 20, null);
+
+        // さらにダメなら制限あり（最大4枚追加）
+        if (!best) {
+          best = findOptimalAdjustment(input, baseTargets, excluded, 20, 4);
+        }
+      }
 
       if (!best) {
         document.getElementById("adjustmentResult").innerText = "※ 補填できませんでした。";
         return;
       }
 
-      let resultText = `【調整後不足金種】\n`;
       const { shortage, shortageTotal, combo } = best;
 
+      let resultText = `【調整後不足金種】\n`;
       for (let denom of denominations) {
         if (shortage[denom]) {
           resultText += `${denom}円×${shortage[denom]}枚 = ${denom * shortage[denom]}円\n`;
@@ -101,39 +112,28 @@
       resultText += `不足合計　${shortageTotal.toLocaleString()}円\n\n`;
 
       resultText += `【補填内訳】\n`;
-      let 補填合計 = 0;
+      let total = 0;
       for (let denom of denominations) {
         if (combo[denom]) {
           const amount = denom * combo[denom];
-          補填合計 += amount;
+          total += amount;
           resultText += `${denom}円×${combo[denom]}枚 = ${amount.toLocaleString()}円\n`;
         }
       }
-      resultText += `補填合計　${補填合計.toLocaleString()}円`;
+      resultText += `補填合計　${total.toLocaleString()}円`;
 
       document.getElementById("adjustmentResult").innerText = resultText;
     }
 
-    async function findOptimalAdjustment(input, baseTargets, shortageDenoms) {
-      let best = null;
-
-      const maxAdd = 20; // 目安として20枚までバックトラック
-      await dfs({}, 0, 0);
-
-      async function dfs(addMap, idx, totalAdd) {
-        if (idx >= shortageDenoms.length) {
-          const newTargets = { ...baseTargets };
-          for (const denom of shortageDenoms) {
-            const added = addMap[denom] || 0;
-            const base = baseTargets[denom];
-            newTargets[denom] = Math.min(base, input[denom] + (base - input[denom]) + added);
-          }
-
+    function findOptimalAdjustment(input, baseTargets, excludeSet, maxTry, maxTotalAdd) {
+      for (let t = 0; t <= maxTry; t++) {
+        const patterns = generateAdjustmentPatterns(baseTargets, t, excludeSet, maxTotalAdd);
+        for (let newTargets of patterns) {
           const shortage = {};
           let shortageTotal = 0;
 
           for (let denom of denominations) {
-            const need = newTargets[denom];
+            const need = newTargets[denom] || 0;
             const lack = Math.max(0, need - input[denom]);
             if (lack > 0) {
               shortage[denom] = lack;
@@ -149,27 +149,36 @@
 
           const combo = knapsack(usableCoins, shortageTotal);
           if (combo) {
-            best = { newTargets, shortage, shortageTotal, combo };
-            return true;
+            return { newTargets, shortage, shortageTotal, combo };
           }
-          return false;
         }
+      }
+      return null;
+    }
 
-        const denom = shortageDenoms[idx];
-        const base = baseTargets[denom];
-        const current = input[denom];
-        const maxExtra = base - current;
+    function generateAdjustmentPatterns(baseTargets, extraCount, excludeSet, maxTotalAdd) {
+      if (extraCount === 0) return [Object.assign({}, baseTargets)];
 
-        for (let add = 0; add <= maxExtra; add++) {
-          addMap[denom] = add;
-          const result = await dfs(addMap, idx + 1, totalAdd + add);
-          if (result) return true;
+      const patterns = [];
+      const denoms = Object.keys(baseTargets).map(Number);
+
+      function backtrack(i, remaining, current, totalAdded) {
+        if (i === denoms.length) {
+          if (remaining === 0 && (maxTotalAdd == null || totalAdded <= maxTotalAdd)) {
+            patterns.push({ ...current });
+          }
+          return;
         }
-
-        return false;
+        const denom = denoms[i];
+        const limit = excludeSet.has(denom) ? 0 : ((denom === 5000) ? Math.min(1, remaining) : remaining);
+        for (let add = 0; add <= limit; add++) {
+          current[denom] = baseTargets[denom] + add;
+          backtrack(i + 1, remaining - add, current, totalAdded + add);
+        }
       }
 
-      return best;
+      backtrack(0, extraCount, {}, 0);
+      return patterns;
     }
 
     function knapsack(usableCoins, targetAmount) {
