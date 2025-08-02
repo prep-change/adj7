@@ -1,24 +1,22 @@
+// worker.js
 const denominations = [10000, 5000, 1000, 500, 100, 50, 10, 5, 1];
+const knapsackCache = new Map();
 
-self.onmessage = function (e) {
-  const { input, baseTargets, autoFixed, maxTry } = e.data;
+onmessage = function (e) {
+  const { input, baseTargets, excludeSetArray, maxTry } = e.data;
+  const excludeSet = new Set(excludeSetArray);
 
-  const excludeSet = new Set(autoFixed);
-  let result = findAdjustment(input, baseTargets, excludeSet, maxTry);
-
-  if (!result && autoFixed.length > 0) {
-    result = findAdjustment(input, baseTargets, new Set(), maxTry);
-  }
-
-  self.postMessage(result ? { success: true, ...result } : { success: false });
+  const result = findOptimalAdjustment(input, baseTargets, excludeSet, maxTry);
+  postMessage(result || null);
 };
 
-function findAdjustment(input, baseTargets, excludeSet, maxTry) {
+function findOptimalAdjustment(input, baseTargets, excludeSet, maxTry = 12) {
   for (let t = 0; t <= maxTry; t++) {
-    const patterns = generatePatterns(baseTargets, t, excludeSet);
+    const patterns = generateAdjustmentPatterns(baseTargets, t, excludeSet);
     for (let newTargets of patterns) {
       const shortage = {};
       let shortageTotal = 0;
+
       for (let denom of denominations) {
         const need = newTargets[denom] || 0;
         const lack = Math.max(0, need - input[denom]);
@@ -28,13 +26,13 @@ function findAdjustment(input, baseTargets, excludeSet, maxTry) {
         }
       }
 
-      const usable = denominations.map(d => {
-        const adjusted = input[d] + (shortage[d] || 0);
-        const use = adjusted - (newTargets[d] || 0);
-        return [d, use];
-      }).filter(([_, c]) => c > 0);
+      const usableCoins = denominations.map(denom => {
+        const adjustedInput = input[denom] + (shortage[denom] || 0);
+        const usable = adjustedInput - (newTargets[denom] || 0);
+        return [denom, usable];
+      }).filter(([_, count]) => count > 0);
 
-      const combo = knapsack(usable, shortageTotal);
+      const combo = knapsack(usableCoins, shortageTotal);
       if (combo) {
         return { newTargets, shortage, shortageTotal, combo };
       }
@@ -43,50 +41,59 @@ function findAdjustment(input, baseTargets, excludeSet, maxTry) {
   return null;
 }
 
-function generatePatterns(baseTargets, extra, excludeSet) {
-  if (extra === 0) return [Object.assign({}, baseTargets)];
+function generateAdjustmentPatterns(baseTargets, extraCount, excludeSet) {
+  if (extraCount === 0) return [Object.assign({}, baseTargets)];
   const patterns = [];
   const denoms = Object.keys(baseTargets).map(Number);
 
-  function backtrack(i, remain, current) {
+  function backtrack(i, remaining, current) {
     if (i === denoms.length) {
-      if (remain === 0) patterns.push({ ...current });
+      if (remaining === 0) patterns.push({ ...current });
       return;
     }
     const denom = denoms[i];
-    const limit = excludeSet.has(denom) ? 0 : (denom === 5000 ? Math.min(1, remain) : remain);
+    const limit = excludeSet.has(denom) ? 0 : ((denom === 5000) ? Math.min(1, remaining) : remaining);
     for (let add = 0; add <= limit; add++) {
       current[denom] = baseTargets[denom] + add;
-      backtrack(i + 1, remain - add, current);
+      backtrack(i + 1, remaining - add, current);
     }
   }
 
-  backtrack(0, extra, {});
+  backtrack(0, extraCount, {});
   return patterns;
 }
 
-function knapsack(coins, target) {
-  const dp = Array(target + 1).fill(null);
+function knapsack(usableCoins, targetAmount) {
+  const key = JSON.stringify(usableCoins) + "|" + targetAmount;
+  if (knapsackCache.has(key)) return knapsackCache.get(key);
+
+  const dp = Array(targetAmount + 1).fill(null);
   dp[0] = {};
 
-  for (let [d, cnt] of coins) {
-    for (let a = target; a >= 0; a--) {
+  for (let [denom, count] of usableCoins) {
+    for (let a = targetAmount; a >= 0; a--) {
       if (dp[a] !== null) {
-        for (let k = 1; k <= cnt; k++) {
-          const na = a + d * k;
-          if (na > target) break;
-          const combo = { ...dp[a] };
-          combo[d] = (combo[d] || 0) + k;
-          if (!dp[na] || totalCoins(combo) < totalCoins(dp[na])) {
-            dp[na] = combo;
+        for (let k = 1; k <= count; k++) {
+          const newAmount = a + denom * k;
+          if (newAmount > targetAmount) break;
+          const newCombo = { ...dp[a] };
+          newCombo[denom] = (newCombo[denom] || 0) + k;
+
+          if (
+            dp[newAmount] === null ||
+            totalCoins(newCombo) < totalCoins(dp[newAmount])
+          ) {
+            dp[newAmount] = newCombo;
           }
         }
       }
     }
   }
-  return dp[target];
+
+  knapsackCache.set(key, dp[targetAmount]);
+  return dp[targetAmount];
 }
 
 function totalCoins(combo) {
-  return Object.values(combo).reduce((a, b) => a + b, 0);
+  return Object.values(combo).reduce((sum, c) => sum + c, 0);
 }
