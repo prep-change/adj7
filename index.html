@@ -120,8 +120,7 @@
 
       document.getElementById("adjustmentResult").innerText = shortageResultText;
 
-      // 【釣銭回収】と【補填内訳】をchangeCollectionResultに出力
-      let combinedResultText = `【釣銭回収】\n`;
+      let combinedResultText = `【釣銭回収】\n 袋/ケースに入れるもの \n`;
       let totalCollected = 0;
       for (let denom of denominations) {
         // baseTargetsから調整後不足枚数を引く
@@ -133,9 +132,9 @@
           totalCollected += amount;
         }
       }
-      combinedResultText += `回収合計　${totalCollected.toLocaleString()}円\n\n`;
+      combinedResultText += `合計　${totalCollected.toLocaleString()}円\n\n`;
       
-      combinedResultText += `【補填内訳】封筒に入れるもの\n`;
+      combinedResultText += `【補填内訳】 封筒に入れるもの\n`;
       let 補填合計 = 0;
       for (let denom of denominations) {
         if (combo[denom]) {
