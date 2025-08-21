@@ -108,7 +108,7 @@
       const { shortage, shortageTotal, combo, newTargets } = best;
 
       // 【調整後不足金種】
-      let shortageResultText = `【調整後不足金種】 これを封筒に書く\n`;
+      let shortageResultText = `【調整後不足金種】 封筒に書く\n`;
       for (let denom of denominations) {
         if (shortage[denom]) {
           shortageResultText += `${denom}円×${shortage[denom]}枚 = ${denom * shortage[denom]}円\n`;
@@ -122,8 +122,8 @@
       let collectionText = `【釣銭回収】\n`;
       let totalCollected = 0;
       for (let denom of denominations) {
-        // 調整後の目標枚数と手持ちを比較して回収量を計算
-        const collected = input[denom] - (newTargets[denom] || 0);
+        // 調整後の目標枚数から、調整後不足枚数を引く
+        const collected = (newTargets[denom] || 0) - (shortage[denom] || 0);
 
         if (collected > 0) {
           const amount = denom * collected;
