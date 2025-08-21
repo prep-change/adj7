@@ -116,34 +116,36 @@
       }
       shortageResultText += `不足合計　${shortageTotal.toLocaleString()}円\n\n`;
 
-      // 【補填内訳】
-      shortageResultText += `【補填内訳】\n`;
-      let 補填合計 = 0;
-      for (let denom of denominations) {
-        if (combo[denom]) {
-          const amount = denom * combo[denom];
-          補填合計 += amount;
-          shortageResultText += `${denom}円×${combo[denom]}枚 = ${amount.toLocaleString()}円\n`;
-        }
-      }
-      shortageResultText += `補填合計　${補填合計.toLocaleString()}円`;
-
       document.getElementById("adjustmentResult").innerText = shortageResultText;
 
       // 【釣銭回収】の計算と表示
       let collectionText = `【釣銭回収】\n`;
       let totalCollected = 0;
       for (let denom of denominations) {
-        // 調整後の目標枚数から、調整後不足枚数を引く
-        const collected = (newTargets[denom] || 0) - (shortage[denom] || 0);
+        // 調整後の手持ち枚数から、調整後の目標枚数を引く
+        const adjustedInput = input[denom] + (shortage[denom] || 0) - (combo[denom] || 0);
+        const collected = adjustedInput - (newTargets[denom] || 0);
+
         if (collected > 0) {
           const amount = denom * collected;
           collectionText += `${denom}円×${collected}枚 = ${amount.toLocaleString()}円\n`;
           totalCollected += amount;
         }
       }
-      collectionText += `回収合計　${totalCollected.toLocaleString()}円`;
+      collectionText += `回収合計　${totalCollected.toLocaleString()}円\n\n`;
 
+      // 【補填内訳】
+      collectionText += `【補填内訳】\n`;
+      let 補填合計 = 0;
+      for (let denom of denominations) {
+        if (combo[denom]) {
+          const amount = denom * combo[denom];
+          補填合計 += amount;
+          collectionText += `${denom}円×${combo[denom]}枚 = ${amount.toLocaleString()}円\n`;
+        }
+      }
+      collectionText += `補填合計　${補填合計.toLocaleString()}円`;
+      
       document.getElementById("changeCollectionResult").innerText = collectionText;
     }
 
