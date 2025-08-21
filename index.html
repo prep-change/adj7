@@ -122,8 +122,8 @@
       let combinedResultText = `【釣銭回収】\n`;
       let totalCollected = 0;
       for (let denom of denominations) {
-        // 調整後の目標枚数から、調整後不足枚数を引く
-        const collected = (newTargets[denom] || 0) - (shortage[denom] || 0);
+        // baseTargetsから調整後不足枚数を引く
+        const collected = (baseTargets[denom] || 0) - (shortage[denom] || 0);
 
         if (collected > 0) {
           const amount = denom * collected;
