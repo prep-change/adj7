@@ -66,7 +66,7 @@
           total += denom * shortage;
         }
       }
-      resultText += `不足合計　${total.toLocaleString()}円`;
+      resultText += `合計　${total.toLocaleString()}円`;
 
       document.getElementById("shortageResult").innerText = resultText;
       document.getElementById("adjustmentResult").innerText = "";
@@ -116,7 +116,7 @@
           shortageResultText += `${denom}円×${shortage[denom]}枚 = ${denom * shortage[denom]}円\n`;
         }
       }
-      shortageResultText += `不足合計　${shortageTotal.toLocaleString()}円`;
+      shortageResultText += `合計　${shortageTotal.toLocaleString()}円`;
 
       document.getElementById("adjustmentResult").innerText = shortageResultText;
 
@@ -143,7 +143,7 @@
           combinedResultText += `${denom}円×${combo[denom]}枚 = ${amount.toLocaleString()}円\n`;
         }
       }
-      combinedResultText += `補填合計　${補填合計.toLocaleString()}円`;
+      combinedResultText += `合計　${補填合計.toLocaleString()}円`;
 
       document.getElementById("changeCollectionResult").innerText = combinedResultText;
     }
