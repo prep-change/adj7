@@ -107,7 +107,7 @@
 
       const { shortage, shortageTotal, combo, newTargets } = best;
 
-      // 【調整後不足金種】
+      // 【調整後不足金種】をadjustmentResultに出力
       let shortageResultText = `【調整後不足金種】 封筒に書く\n`;
       for (let denom of denominations) {
         if (shortage[denom]) {
@@ -118,8 +118,8 @@
 
       document.getElementById("adjustmentResult").innerText = shortageResultText;
 
-      // 【釣銭回収】の計算と表示
-      let collectionText = `【釣銭回収】\n`;
+      // 【釣銭回収】と【補填内訳】をchangeCollectionResultに出力
+      let combinedResultText = `【釣銭回収】\n`;
       let totalCollected = 0;
       for (let denom of denominations) {
         // 調整後の目標枚数から、調整後不足枚数を引く
@@ -127,25 +127,24 @@
 
         if (collected > 0) {
           const amount = denom * collected;
-          collectionText += `${denom}円×${collected}枚 = ${amount.toLocaleString()}円\n`;
+          combinedResultText += `${denom}円×${collected}枚 = ${amount.toLocaleString()}円\n`;
           totalCollected += amount;
         }
       }
-      collectionText += `回収合計　${totalCollected.toLocaleString()}円\n\n`;
+      combinedResultText += `回収合計　${totalCollected.toLocaleString()}円\n\n`;
       
-      // 【補填内訳】
-      collectionText += `【補填内訳】\n`;
+      combinedResultText += `【補填内訳】\n`;
       let 補填合計 = 0;
       for (let denom of denominations) {
         if (combo[denom]) {
           const amount = denom * combo[denom];
           補填合計 += amount;
-          collectionText += `${denom}円×${combo[denom]}枚 = ${amount.toLocaleString()}円\n`;
+          combinedResultText += `${denom}円×${combo[denom]}枚 = ${amount.toLocaleString()}円\n`;
         }
       }
-      collectionText += `補填合計　${補填合計.toLocaleString()}円`;
+      combinedResultText += `補填合計　${補填合計.toLocaleString()}円`;
 
-      document.getElementById("changeCollectionResult").innerText = collectionText;
+      document.getElementById("changeCollectionResult").innerText = combinedResultText;
     }
 
     function findOptimalAdjustment(input, baseTargets, excludeSet, maxTry = 12) {
