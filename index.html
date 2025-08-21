@@ -12,10 +12,8 @@
 
     <div id="input-area" class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6"></div>
 
-    <button onclick="calculateShortage()" class="w-full bg-blue-500 text-white py-2 rounded mb-4">不足を計算する</button>
-    <button onclick="adjustShortage()" class="w-full bg-green-500 text-white py-2 rounded">調整</button>
+    <button onclick="adjustShortage()" class="w-full bg-green-500 text-white py-2 rounded">調整する</button>
 
-    <div id="shortageResult" class="mt-6 bg-white p-4 rounded shadow whitespace-pre-wrap"></div>
     <div id="adjustmentResult" class="mt-6 bg-white p-4 rounded shadow whitespace-pre-wrap"></div>
     <div id="changeCollectionResult" class="mt-6 bg-white p-4 rounded shadow whitespace-pre-wrap"></div>
   </div>
@@ -48,36 +46,18 @@
       inputArea.appendChild(wrapper);
     });
 
-    function calculateShortage() {
+    async function adjustShortage() {
+      // ユーザー入力の取得
       const input = {};
       denominations.forEach(denom => {
         input[denom] = parseInt(document.getElementById(`input${denom}`).value || "0", 10);
       });
       latestInput = input;
 
-      let resultText = `【調整前不足金種】\n`;
-      let total = 0;
-      for (let denom of denominations) {
-        const shortage = Math.max(0, baseTargets[denom] - input[denom]);
-        if (shortage > 0) {
-          resultText += `${denom}円×${shortage}枚 = ${denom * shortage}円\n`;
-          total += denom * shortage;
-        }
-      }
-      resultText += `不足合計　${total.toLocaleString()}円`;
-
-      document.getElementById("shortageResult").innerText = resultText;
-      document.getElementById("adjustmentResult").innerText = "";
+      // 結果表示エリアのクリア
+      document.getElementById("adjustmentResult").innerText = "調整中です...";
       document.getElementById("changeCollectionResult").innerText = "";
-    }
-
-    async function adjustShortage() {
-      if (!latestInput || Object.keys(latestInput).length === 0) {
-        document.getElementById("adjustmentResult").innerText = "※ 先に「不足を計算する」を押してください。";
-        return;
-      }
-
-      const input = latestInput;
+      await new Promise(resolve => setTimeout(resolve, 50));
 
       // 自動固定候補（目標達成済みの金種）
       const autoFixed = new Set(
@@ -88,11 +68,8 @@
 
       // 最初は自動固定を除外して試す
       let excluded = autoFixed;
-
-      document.getElementById("adjustmentResult").innerText = "調整中です...";
-      await new Promise(resolve => setTimeout(resolve, 50));
-
       let best = findOptimalAdjustment(input, baseTargets, excluded);
+
       if (!best && autoFixed.size > 0) {
         // 自動固定を外して再試行
         excluded = new Set();
@@ -101,7 +78,6 @@
 
       if (!best) {
         document.getElementById("adjustmentResult").innerText = "※ 補填できませんでした。";
-        document.getElementById("changeCollectionResult").innerText = "";
         return;
       }
 
@@ -115,7 +91,6 @@
         }
       }
       shortageResultText += `不足合計　${shortageTotal.toLocaleString()}円`;
-
       document.getElementById("adjustmentResult").innerText = shortageResultText;
 
       // 【釣銭回収】と【補填内訳】をchangeCollectionResultに出力
@@ -124,7 +99,6 @@
       for (let denom of denominations) {
         // baseTargetsから調整後不足枚数を引く
         const collected = (baseTargets[denom] || 0) - (shortage[denom] || 0);
-
         if (collected > 0) {
           const amount = denom * collected;
           combinedResultText += `${denom}円×${collected}枚 = ${amount.toLocaleString()}円\n`;
@@ -143,7 +117,6 @@
         }
       }
       combinedResultText += `補填合計　${補填合計.toLocaleString()}円`;
-
       document.getElementById("changeCollectionResult").innerText = combinedResultText;
     }
 
