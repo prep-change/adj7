@@ -21,10 +21,12 @@
   </div>
 
   <script>
-    const denominations = [10000, 5000, 1000, 500, 100, 50, 10, 5, 1];
+    
+    const denominations = [10000, 5000, 2000, 1000, 500, 100, 50, 10, 5, 1];
     const baseTargets = {
       10000: 0,
       5000: 15,
+      2000: 0,
       1000: 42,
       500: 50,
       100: 100,
@@ -108,7 +110,7 @@
       const { shortage, shortageTotal, combo, newTargets } = best;
 
       // 【調整後不足金種】をadjustmentResultに出力
-      let shortageResultText = `【調整後不足金種】 封筒に書く\n`;
+      let shortageResultText = `【調整後不足金種】 以下を封筒に書く\n`;
       for (let denom of denominations) {
         if (shortage[denom]) {
           shortageResultText += `${denom}円×${shortage[denom]}枚 = ${denom * shortage[denom]}円\n`;
@@ -133,7 +135,7 @@
       }
       combinedResultText += `回収合計　${totalCollected.toLocaleString()}円\n\n`;
       
-      combinedResultText += `【補填内訳】\n`;
+      combinedResultText += `【補填内訳】封筒に入れるもの\n`;
       let 補填合計 = 0;
       for (let denom of denominations) {
         if (combo[denom]) {
