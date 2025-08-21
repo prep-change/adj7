@@ -97,8 +97,9 @@
       let combinedResultText = `【釣銭回収】\n`;
       let totalCollected = 0;
       for (let denom of denominations) {
-        // baseTargetsから調整後不足枚数を引く
-        const collected = (baseTargets[denom] || 0) - (shortage[denom] || 0);
+        // 最初のコードのロジックを再適用
+        const collected = input[denom] + (shortage[denom] || 0) - (newTargets[denom] || 0) - (combo[denom] || 0);
+
         if (collected > 0) {
           const amount = denom * collected;
           combinedResultText += `${denom}円×${collected}枚 = ${amount.toLocaleString()}円\n`;
