@@ -110,7 +110,7 @@
       const { shortage, shortageTotal, combo, newTargets } = best;
 
       // 【調整後不足金種】をadjustmentResultに出力
-      let shortageResultText = `【調整後不足金種】 以下を封筒に書く\n`;
+      let shortageResultText = `【調整後不足金種】 以下を封筒に書く。\n`;
       for (let denom of denominations) {
         if (shortage[denom]) {
           shortageResultText += `${denom}円×${shortage[denom]}枚 = ${denom * shortage[denom]}円\n`;
@@ -148,7 +148,7 @@
       document.getElementById("changeCollectionResult").innerText = combinedResultText;
     }
 
-    function findOptimalAdjustment(input, baseTargets, excludeSet, maxTry = 12) {
+    function findOptimalAdjustment(input, baseTargets, excludeSet, maxTry = 13) {
       for (let t = 0; t <= maxTry; t++) {
         const patterns = generateAdjustmentPatterns(baseTargets, t, excludeSet);
         for (let newTargets of patterns) {
